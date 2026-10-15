@@ -38,7 +38,8 @@ def run_regression(base, output):
             subprocess.run([*base, *command], stdout=log, stderr=subprocess.STDOUT, check=True, timeout=180)
 
     (output / "cpu-probe.c").write_text("int answer(void) { return 42; }\n")
-    for option in ["-m68010", "-m68020", "-mcpu=68040", "-march=68020", "-m68881"]:
+    for option in ["-m68010", "-m68020", "-mcpu=68040", "-mcpu=cpu32", "-mcpu=5475",
+                   "-march=68020", "-m68881", "-m68851"]:
         with (output / f"reject{option}.log").open("w") as log:
             result = subprocess.run([*base, "m68k-elf-gcc", option, "-c", "cpu-probe.c", "-o", "invalid.o"], stdout=log, stderr=subprocess.STDOUT)
         if result.returncode == 0:

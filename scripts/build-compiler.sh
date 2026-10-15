@@ -9,7 +9,7 @@ cd /build/binutils-build
     --disable-nls --disable-werror --with-system-zlib
 make -j"${BUILD_JOBS:-4}"
 make install
-export PATH=/opt/m68k/bin:$PATH
+export PATH="/opt/m68k/bin:$PATH"
 cd /build/gcc-build
 /build/gcc/configure --target=m68k-elf --prefix=/opt/m68k \
     --with-cpu=m68000 --enable-languages=c --without-headers --disable-threads \
