@@ -37,6 +37,12 @@ def image():
 
 
 class DiscAccounting(unittest.TestCase):
+    def test_boot_only_disc_can_have_an_empty_filesystem(self):
+        data = image()
+        entries = record(b"\0", 18, 2048, True) + record(b"\1", 18, 2048, True)
+        data[18 * 2048:19 * 2048] = entries.ljust(2048, b"\0")
+        self.assertEqual(inspect_iso(data)["files"], {})
+
     def test_reads_nested_files_without_iso_metadata(self):
         data = image()
         result = inspect_iso(data)

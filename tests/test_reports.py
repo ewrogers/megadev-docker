@@ -20,6 +20,12 @@ def example_report(platform):
 
 
 class PublicationGate(unittest.TestCase):
+    def test_hello_world_can_be_boot_only(self):
+        left, right = example_report("linux/arm64"), example_report("linux/amd64")
+        for report in (left, right):
+            report["examples"]["hello_world"]["disc"]["files"] = {}
+        reports.compare(left, right)
+
     def test_matching_payloads_pass_despite_different_host_metadata(self):
         left, right = example_report("linux/arm64"), example_report("linux/amd64")
         left["image_id"], right["image_id"] = "native-arm", "native-amd"

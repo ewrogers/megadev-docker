@@ -3,7 +3,7 @@ from pathlib import Path
 import subprocess
 
 
-def execute(binary, symbols, *, rom=False):
+def execute(binary, symbols):
     from unicorn import Uc, UC_ARCH_M68K, UC_MODE_BIG_ENDIAN
     from unicorn.m68k_const import UC_CPU_M68K_M68000, UC_M68K_REG_A7, UC_M68K_REG_D0, UC_M68K_REG_PC, UC_M68K_REG_SR
 
@@ -17,16 +17,13 @@ def execute(binary, symbols, *, rom=False):
     machine.mem_map(0, 0x400000)
     machine.mem_map(0xA00000, 0x20000)
     machine.mem_map(0xE0FF0000, 0x10000)
-    machine.mem_write(0 if rom else 0x10000, binary.read_bytes())
+    machine.mem_write(0x10000, binary.read_bytes())
     machine.mem_write(0xA00000, b"\xcc" * 8192)
     machine.reg_write(UC_M68K_REG_SR, 0x2700)
     machine.reg_write(UC_M68K_REG_A7, 0xE0FFFFE0)
-    end = 0x300000 if rom else names["finished"]
+    end = names["finished"]
     machine.mem_write(0xE0FFFFE0, end.to_bytes(4, "big"))
-    entries = [address for name, address in names.items() if name == "main" or name.startswith("main.")]
-    if rom and len(entries) != 1:
-        raise AssertionError("Expected one SGDK main entry point")
-    machine.emu_start(entries[0] if rom else names["_start"], end, count=2_000_000)
+    machine.emu_start(names["_start"], end, count=2_000_000)
     if machine.reg_read(UC_M68K_REG_PC) != end:
         raise AssertionError("M68000 byte-copy test did not return within its instruction limit")
     return machine.reg_read(UC_M68K_REG_D0)
@@ -69,7 +66,7 @@ def run_regression(base, output):
     if execute(output / "far-branch.bin", output / "far-branch.nm"):
         raise AssertionError("M68000 far-branch regression failed")
 
-    # Also guard the compiler default independently of SGDK. The explicit
+    # Guard the compiler default independently of example projects. The explicit
     # opt-in is a negative control: GCC 16.2 must reproduce the original bug.
     (output / "copy-probe.c").write_text('''
 static const unsigned char source[8192] = {0xf3,0xc3,0xb7,0x02,[8191]=0x5a};

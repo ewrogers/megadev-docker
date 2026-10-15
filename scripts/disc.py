@@ -47,6 +47,4 @@ def inspect_iso(data):
     if len(root) < 34:
         raise ValueError("invalid ISO root directory")
     walk(root, "", set())
-    if not files:
-        raise ValueError("ISO contains no data files")
     return {"boot": digest(data[:32768]), "files": files}

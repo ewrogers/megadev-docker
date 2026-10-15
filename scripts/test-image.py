@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import zlib
 from disc import digest, inspect_iso
 from m68k_regression import run_regression
 
@@ -66,6 +67,12 @@ def main():
             images = list(project.glob("*.iso"))
             assert len(images) == 1
             result["disc"] = inspect_iso(images[0].read_bytes())
+            expected_files = {path.name.upper(): digest(path.read_bytes()) for path in (project / "disc").iterdir() if path.is_file()}
+            assert result["disc"]["files"] == expected_files, f"{name}: disc contents differ from compiled files"
+            region = name.removeprefix("region-") if name.startswith("region-") else "US"
+            length, crc = {"US": (1412, 0xf361ab57), "JP": (340, 0x4571f623), "EU": (1390, 0x6ffb4732)}[region]
+            # The same regional boot signatures used by ares' disc detection.
+            assert zlib.crc32(images[0].read_bytes()[0x200:0x200 + length]) == crc, f"{name}: incorrect regional boot block"
             run(f"cue-{name}", ["cue", str(images[0].relative_to(output))])
         else:
             assert next(project.glob("*.cart")).read_bytes()[0x100:0x104] == b"SEGA"

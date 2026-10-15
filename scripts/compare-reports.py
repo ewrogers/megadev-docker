@@ -23,8 +23,12 @@ def compare(left, right):
         for case, outputs in report["examples"].items():
             if not outputs.get("payloads"):
                 raise ValueError(f"{case}: no compiled payloads")
-            if case != "cart" and not outputs.get("disc", {}).get("files"):
-                raise ValueError(f"{case}: no disc files")
+            if case != "cart":
+                disc = outputs.get("disc", {})
+                if not disc.get("boot") or "files" not in disc:
+                    raise ValueError(f"{case}: no disc inspection")
+                if case != "hello_world" and not disc["files"]:
+                    raise ValueError(f"{case}: no disc files")
     if left.get("sources") != right.get("sources") or not left.get("sources"):
         raise ValueError("architecture reports used different source inputs")
     if left["examples"] != right["examples"]:

@@ -67,7 +67,8 @@ ignored `build/`. Unicorn is a test-only dependency; it is not in the image.
 
 The suite builds fresh copies of all seven upstream projects, including the
 cartridge example, and repeats the C template for US/NTSC, JP/NTSC and EU/PAL.
-It checks boot headers, ISO9660 files, compiled modules, command failures,
+It checks regional boot signatures, ISO9660 files against the compiled modules,
+command failures,
 non-destructive project creation, source access, GDB symbols and a project
 folder containing spaces. The host UID/GID is used for generated files.
 
@@ -76,11 +77,13 @@ far branches and libgcc arithmetic as a 68000, and check the byte-copy defect
 with LTO. The architecture comparison requires the boot areas, modules and
 disc file contents to match. Whole ISO hashes are excluded because filesystem
 metadata contains build dates.
+The regional signatures follow [ares' disc detection](https://github.com/ares-emulator/ares/blob/master/mia/medium/mega-cd.cpp).
 
-The earlier Debian-compiler prototype was boot-tested in ares: the user
-confirmed the three upstream modules animated and cycled correctly. New
-compiler builds still need their own runtime check. Build tests do not prove
-CD audio, PCM playback, scaling effects or real-console behavior.
+The GCC 16 container's US template was boot-tested in ares v148: the user
+confirmed all three upstream modules animated and cycled correctly. The local
+ARM64 image suite also passed all seven examples and three regional builds.
+Build tests do not prove CD audio, PCM playback, scaling effects or real-console
+behavior; those need separate runtime checks.
 
 ## CI and Docker Hub
 
