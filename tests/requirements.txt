@@ -1,0 +1,2 @@
+# Test-only M68000 execution; not installed in the published toolchain.
+unicorn==2.1.4

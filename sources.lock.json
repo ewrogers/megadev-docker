@@ -1,0 +1,21 @@
+{
+  "gcc": {
+    "version": "16.2.0",
+    "url": "https://ftp.gnu.org/gnu/gcc/gcc-16.2.0/gcc-16.2.0.tar.xz",
+    "sha256": "e6738e29597f733270731aa90600f37ffdc045079dfc27ec7e8192cc81085c3e",
+    "archive": "gcc.tar.xz"
+  },
+  "binutils": {
+    "version": "2.47",
+    "url": "https://ftp.gnu.org/gnu/binutils/binutils-2.47.tar.xz",
+    "sha256": "154ab23b60070e8f27013c22977f1129425d67d1e8acd6e13010e617811e4cff",
+    "archive": "binutils.tar.xz"
+  },
+  "megadev": {
+    "version": "7a7246c",
+    "commit": "7a7246c14b845ad2f1bd3c7d73afb04cf67d83ef",
+    "url": "https://codeload.github.com/drojaazu/megadev/tar.gz/7a7246c14b845ad2f1bd3c7d73afb04cf67d83ef",
+    "sha256": "98d8fdaf8d71afd9e552529897c1760b05078eef899f16e63e8590d10150e6f6",
+    "archive": "megadev.tar.gz"
+  }
+}

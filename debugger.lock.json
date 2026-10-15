@@ -1,0 +1,8 @@
+{
+  "gdb": {
+    "version": "18.1",
+    "url": "https://ftp.gnu.org/gnu/gdb/gdb-18.1.tar.xz",
+    "sha256": "cd9fc3fe2b47743840e42c1592d3d87f8302eb18639c0b8b4ba0898002e2348f",
+    "archive": "gdb.tar.xz"
+  }
+}
