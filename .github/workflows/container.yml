@@ -1,0 +1,117 @@
+name: Container matrix
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: [README.md, AGENTS.md, LICENSE, "docs/**"]
+  pull_request:
+    paths-ignore: [README.md, AGENTS.md, LICENSE, "docs/**"]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish both tested architectures to Docker Hub
+        type: boolean
+        default: false
+
+concurrency:
+  group: container-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ewrogers/megadev
+  VERSION: 7a7246c-gcc16.2.0-binutils2.47
+
+jobs:
+  build:
+    name: Build and test ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+          - arch: amd64
+            runner: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: python3 -m unittest discover -s tests
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          platforms: linux/${{ matrix.arch }}
+          tags: megadev-ci:${{ matrix.arch }}
+          build-args: BUILD_JOBS=4
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,scope=${{ matrix.arch }},mode=max
+      - name: Test tools and fresh upstream examples
+        run: |
+          python3 -m venv build/test-venv
+          build/test-venv/bin/pip install -r tests/requirements.txt
+          build/test-venv/bin/python scripts/test-image.py megadev-ci:${{ matrix.arch }} --platform linux/${{ matrix.arch }} --output build/test
+      - name: Keep test reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tests-${{ matrix.arch }}
+          path: |
+            build/test/*.log
+            build/test/report.json
+      - name: Sign into Docker Hub
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish))
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ewrogers
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Push the tested image
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish))
+        run: |
+          docker tag megadev-ci:${{ matrix.arch }} "$IMAGE:build-$GITHUB_SHA-${{ matrix.arch }}"
+          docker push "$IMAGE:build-$GITHUB_SHA-${{ matrix.arch }}"
+          mkdir -p build/digest
+          docker image inspect "$IMAGE:build-$GITHUB_SHA-${{ matrix.arch }}" --format '{{index .RepoDigests 0}}' > build/digest/${{ matrix.arch }}.txt
+      - name: Keep immutable publication digest
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish))
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: digest-${{ matrix.arch }}
+          path: build/digest/
+
+  compare:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: tests-*
+          path: reports
+      - run: python3 scripts/compare-reports.py reports/tests-arm64/report.json reports/tests-amd64/report.json
+
+  publish:
+    needs: [build, compare]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish))
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ewrogers
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: digest-*
+          merge-multiple: true
+          path: digests
+      - name: Publish the complete platform manifest
+        run: |
+          docker buildx imagetools create \
+            --tag "$IMAGE:$VERSION" --tag "$IMAGE:latest" \
+            "$(cat digests/arm64.txt)" "$(cat digests/amd64.txt)"
+          docker buildx imagetools inspect "$IMAGE:$VERSION"
