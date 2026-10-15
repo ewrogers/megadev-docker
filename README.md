@@ -94,3 +94,13 @@ safeguards and maintainer instructions.
 The packaging is MIT licensed. Bundled tools retain their own licenses.
 GNU source archives and build recipes are included under
 `/usr/local/share/megadev`; Megadev's license is at `/opt/megadev/LICENSE`.
+
+## Disclaimer
+
+Megadev Docker is an independent community project. It is not affiliated with,
+endorsed by or sponsored by SEGA CORPORATION or SEGA SAMMY HOLDINGS INC.
+SEGA and related names, logos and trademarks belong to their respective owners.
+They are used here to identify the hardware and tools this project supports.
+
+This repository's original work is available under the [MIT License](LICENSE).
+Third-party software and materials retain their own licenses and notices.
