@@ -34,6 +34,12 @@ def main():
     doctor = run("doctor", ["doctor"])
     assert ("aarch64" if args.platform.endswith("arm64") else "x86_64") in doctor
     assert "16.2.0" in doctor and "2.47" in doctor and "18.1" in doctor and "m68k-elf" in doctor
+    root = Path(__file__).resolve().parents[1]
+    sources = json.loads(run("locked-sources", ["cat", "/usr/local/share/megadev/sources.lock.json"]))
+    debugger = json.loads(run("locked-debugger", ["cat", "/usr/local/share/megadev/debugger.lock.json"]))
+    assert sources == json.loads((root / "sources.lock.json").read_text()), "image source inputs differ from this checkout"
+    assert debugger == json.loads((root / "debugger.lock.json").read_text()), "image debugger inputs differ from this checkout"
+    assert sources["megadev"]["commit"] in doctor
     run("source-access", ["sh", "-c", 'test -r /usr/local/share/megadev/sources/gcc.tar.xz && test -r /usr/local/share/megadev/sources/gdb.tar.xz && test -r /opt/megadev/LICENSE'])
     assert run("arguments", ["sh", "-c", 'printf "%s\\n" "$@"', "label", "two words", "semi;colon"]) == "two words\nsemi;colon\n"
     run("failure", ["sh", "-c", "exit 17"], expected=17)
@@ -69,9 +75,8 @@ def main():
     run("clean", ["build", "-C", "new_project", "clean"])
     (output / "new_project/src/ipx.c").write_text('#error Intentional test failure\n')
     run("build-failure", ["build", "-C", "new_project"], expected=2)
-    sources = json.loads((Path(__file__).resolve().parents[1] / "sources.lock.json").read_text())
     report = {"passed": True, "platform": args.platform, "image_id": metadata["Id"],
-              "sources": sources, "doctor": doctor, "m68k_regression": regression, "examples": results}
+              "sources": {**sources, **debugger}, "doctor": doctor, "m68k_regression": regression, "examples": results}
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     print(f"Passed {args.platform}; report: {output / 'report.json'}")
 
