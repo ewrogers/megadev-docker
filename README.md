@@ -59,7 +59,7 @@ docker run --rm -v "$PWD:/workspace" ewrogers/megadev:latest m68k-elf-objdump -d
 
 Megadev is at `/opt/megadev` (`$MEGADEV_PATH` inside the container).
 `M68K_PREFIX=m68k-elf-` is already set. Ordinary `make` works too. Both console
-CPUs target the original 68000, with GNU C17 as the default. This is a separate
+CPUs target the original 68000, with GNU C17 and safe compiler defaults. This is a separate
 toolchain from [SGDK Docker](https://github.com/ewrogers/sgdk-docker).
 
 ## Build the container locally

@@ -1,5 +1,6 @@
 """Execute compiled 68000 code, including a known optimizer negative control."""
 from pathlib import Path
+import shutil
 import subprocess
 
 
@@ -25,7 +26,7 @@ def execute(binary, symbols):
     machine.mem_write(0xE0FFFFE0, end.to_bytes(4, "big"))
     machine.emu_start(names["_start"], end, count=2_000_000)
     if machine.reg_read(UC_M68K_REG_PC) != end:
-        raise AssertionError("M68000 byte-copy test did not return within its instruction limit")
+        raise AssertionError("M68000 regression did not return within its instruction limit")
     return machine.reg_read(UC_M68K_REG_D0)
 
 
@@ -91,6 +92,27 @@ int probe(void) {
         result = execute(output / f"{name}.bin", output / f"{name}.nm")
         if result != expected:
             raise AssertionError(f"{name}: expected {expected}, got {result}; review GCC workaround")
+    # Exercise the compiler policy with and without LTO. The incompatible
+    # pointer fixture intentionally violates strict-aliasing rules: a failing
+    # strict opt-in is evidence of the compatibility need, not a compiler bug.
+    fixtures = Path(__file__).resolve().parents[1] / "tests/fixtures"
+    for name in ["alias-probe.c", "alias-bytes.c"]:
+        shutil.copyfile(fixtures / name, output / name)
+    for mode, optimize in [("o2", ["-O2"]), ("lto", ["-O3", "-flto"])]:
+        for case, source, flags, expected in [
+            ("alias-default", "alias-probe.c", [], 0),
+            ("alias-negative-control", "alias-probe.c", ["-fstrict-aliasing"], 1),
+            ("alias-bytes", "alias-bytes.c", ["-fstrict-aliasing"], 0),
+        ]:
+            name = f"{case}-{mode}"
+            run(name, ["m68k-elf-gcc", "-std=c17", *optimize, "-nostdlib",
+                       "-Wl,-Ttext=0x10000", "-Wl,-e,_start", "copy-start.s", source,
+                       "-o", f"{name}.elf", *flags])
+            run(f"{name}-extract", ["sh", "-c", f"m68k-elf-objcopy -O binary {name}.elf {name}.bin && m68k-elf-nm {name}.elf > {name}.nm"])
+            result = execute(output / f"{name}.bin", output / f"{name}.nm")
+            if result != expected:
+                raise AssertionError(f"{name}: expected {expected}, got {result}; review aliasing policy")
+
     # GCC's libgcc is built for the base 68000 with multilib disabled. Long
     # division/multiplication must work too, without 68020-only instructions.
     (output / "arithmetic.c").write_text('''
@@ -107,6 +129,7 @@ int probe(void) {
     run("arithmetic-extract", ["sh", "-c", "m68k-elf-objcopy -O binary arithmetic.elf arithmetic.bin && m68k-elf-nm arithmetic.elf > arithmetic.nm"])
     if execute(output / "arithmetic.bin", output / "arithmetic.nm"):
         raise AssertionError("M68000 libgcc arithmetic regression failed")
-    print("Passed M68000 execution, libgcc arithmetic and failing optimization control", flush=True)
+    print("Passed M68000 execution, aliasing policy, libgcc arithmetic and negative controls", flush=True)
     return {"compiler_default": "passed", "negative_control": "reproduced", "far_branch": "passed",
-            "cpu_policy": "passed", "libgcc_arithmetic": "passed", "emulator": "Unicorn 2.1.4 M68000"}
+            "cpu_policy": "passed", "libgcc_arithmetic": "passed", "aliasing_default": "passed",
+            "aliasing_negative_control": "reproduced", "aliasing_byte_access": "passed", "emulator": "Unicorn 2.1.4 M68000"}

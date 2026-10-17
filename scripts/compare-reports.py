@@ -17,7 +17,9 @@ def compare(left, right):
             raise ValueError("incomplete or failed architecture report")
         checks = report.get("m68k_regression", {})
         expected = {"compiler_default": "passed", "negative_control": "reproduced",
-                    "far_branch": "passed", "cpu_policy": "passed", "libgcc_arithmetic": "passed"}
+                    "far_branch": "passed", "cpu_policy": "passed", "libgcc_arithmetic": "passed",
+                    "aliasing_default": "passed", "aliasing_negative_control": "reproduced",
+                    "aliasing_byte_access": "passed"}
         if any(checks.get(key) != value for key, value in expected.items()):
             raise ValueError("missing executed compiler regressions")
         for case, outputs in report["examples"].items():

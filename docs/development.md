@@ -39,6 +39,14 @@ workaround used in SGDK Docker. The regression executes the emitted machine
 code, then explicitly enables `-fauto-inc-dec` as a negative control that must
 reproduce the defect. Do not enable that optimization for game builds.
 
+`-fno-strict-aliasing` is also a driver default for ordinary compilation and LTO,
+matching SGDK Docker's compatibility policy for low-level mixed-width buffers.
+An explicit `-fstrict-aliasing` remains available for audited code and diagnosis.
+This is not a fix for a GCC optimizer bug: incompatible typed-pointer aliasing
+violates the normal C rules. Prefer character access, explicit packing or another
+valid representation in new code. The flag does not fix alignment, bounds, data
+races, MMIO volatility or other undefined behavior.
+
 These are correctness guards, not a security sandbox or proof of arbitrary
 code. Handwritten `.word` instructions, imported binaries, CPU directives and
 deliberately replaced compiler specs still require review. Hardware registers,
@@ -74,7 +82,11 @@ folder containing spaces. The host UID/GID is used for generated files.
 
 Compiler regressions reject invalid CPU/FPU instructions and options, execute
 far branches and libgcc arithmetic as a 68000, and check the byte-copy defect
-with LTO. The architecture comparison requires the boot areas, modules and
+with LTO. Aliasing regressions execute O2 and O3/LTO output: the compatibility
+default preserves mixed-width writes, explicit strict aliasing reproduces the
+intentional negative control, and a valid character-access version passes even
+with strict aliasing. Publication fails if any architecture lacks these checks.
+The architecture comparison requires the boot areas, modules and
 disc file contents to match. Whole ISO hashes are excluded because filesystem
 metadata contains build dates.
 The regional signatures follow [ares' disc detection](https://github.com/ares-emulator/ares/blob/master/mia/medium/mega-cd.cpp).
