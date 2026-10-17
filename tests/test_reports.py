@@ -15,7 +15,9 @@ def example_report(platform):
                "disc": {"boot": {"sha256": "b" * 64}, "files": {"FILE": {"sha256": "c" * 64}}}}
     return {"passed": True, "platform": platform, "sources": {"gcc": "locked"},
             "m68k_regression": {"compiler_default": "passed", "negative_control": "reproduced",
-                                "far_branch": "passed", "cpu_policy": "passed", "libgcc_arithmetic": "passed"},
+                                "far_branch": "passed", "cpu_policy": "passed", "libgcc_arithmetic": "passed",
+                                "aliasing_default": "passed", "aliasing_negative_control": "reproduced",
+                                "aliasing_byte_access": "passed"},
             "examples": {name: copy.deepcopy(outputs) for name in reports.CASES}}
 
 
@@ -30,6 +32,19 @@ class PublicationGate(unittest.TestCase):
         left, right = example_report("linux/arm64"), example_report("linux/amd64")
         left["image_id"], right["image_id"] = "native-arm", "native-amd"
         reports.compare(left, right)
+
+    def test_missing_or_failed_aliasing_checks_cannot_publish(self):
+        for field in ["aliasing_default", "aliasing_negative_control", "aliasing_byte_access"]:
+            for side in ["arm64", "amd64"]:
+                for value in [None, "failed", False]:
+                    left, right = example_report("linux/arm64"), example_report("linux/amd64")
+                    edited = left if side == "arm64" else right
+                    if value is None:
+                        del edited["m68k_regression"][field]
+                    else:
+                        edited["m68k_regression"][field] = value
+                    with self.subTest(field=field, side=side, value=value), self.assertRaises(ValueError):
+                        reports.compare(left, right)
 
     def test_rejects_failed_missing_or_different_results(self):
         left = example_report("linux/arm64")

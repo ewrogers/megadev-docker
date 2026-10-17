@@ -7,7 +7,7 @@ printf 'GCC: '; m68k-elf-gcc -dumpfullversion
 m68k-elf-ld --version | head -1
 m68k-elf-gdb --version | head -1
 mkisofs --version
-printf 'Defaults: GNU C17, base 68000, no FPU/MMU, -fno-auto-inc-dec\n'
+printf 'Defaults: GNU C17, base 68000, no FPU/MMU, -fno-auto-inc-dec, -fno-strict-aliasing\n'
 for tool in make git python3 xxd m68k-elf-as m68k-elf-ar m68k-elf-objcopy m68k-elf-gdb; do
     command -v "$tool"
 done

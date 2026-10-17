@@ -7,6 +7,10 @@
 - Target the base 68000 on both CPUs. Keep compiler and assembler guards,
   the byte-copy workaround, and executed regressions in sync with SGDK Docker.
 - Keep GNU C17 as the default without replacing Megadev's project flags.
+- Keep the driver-level `-fno-strict-aliasing` compatibility default and executed
+  O2/LTO positive/negative controls in sync with publication gates. Incompatible
+  typed-pointer aliasing is a C rules issue, not a GCC bug; prefer valid byte
+  access in new code. Explicit strict-aliasing opt-in remains available.
 - No BIOS, commercial disc images, private paths or credentials in this
   repository or container. Source downloads and test outputs belong in build/.
 - Test real compiled machine code, fresh upstream examples, disc contents,
